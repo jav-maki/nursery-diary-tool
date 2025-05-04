@@ -1,0 +1,903 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <title>保育園日誌生成ツール</title>
+    <link rel="apple-touch-icon" href="icon-192.png">
+    <link rel="manifest" href="manifest.json">
+    <style>
+        /* iPadに最適化したスタイル */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+            padding: 0;
+            margin: 0;
+            background-color: #f5f5f5;
+            -webkit-user-select: none; /* Safari */
+            -webkit-touch-callout: none; /* iOS Safari */
+            -webkit-tap-highlight-color: rgba(0,0,0,0);
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .app-header {
+            background-color: #4a6da7;
+            color: white;
+            padding: 15px 20px;
+            text-align: center;
+            font-size: 24px;
+            font-weight: bold;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .form-card {
+            background-color: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #444;
+            font-size: 16px;
+        }
+        
+        input[type="text"], 
+        input[type="date"], 
+        input[type="password"],
+        select {
+            width: 100%;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            font-size: 18px;
+            -webkit-appearance: none;
+        }
+        
+        /* iPadのセレクトボックスをカスタマイズ */
+        select {
+            background-image: url("data:image/svg+xml;utf8,<svg fill='gray' height='24' viewBox='0 0 24 24' width='24' xmlns='http://www.w3.org/2000/svg'><path d='M7 10l5 5 5-5z'/></svg>");
+            background-repeat: no-repeat;
+            background-position: right 10px center;
+            background-size: 20px;
+        }
+        
+        /* ボタンスタイル */
+        button {
+            background-color: #4a8f69;
+            color: white;
+            border: none;
+            padding: 15px 20px;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: bold;
+            width: 100%;
+            margin-top: 20px;
+            cursor: pointer;
+        }
+        
+        button:active {
+            background-color: #3a7355;
+            transform: scale(0.98);
+        }
+        
+        /* クイック入力ボタン */
+        .quick-inputs {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin: 15px 0;
+        }
+        
+        .quick-input-btn {
+            background-color: #f0f0f0;
+            border: 1px solid #ddd;
+            padding: 10px 15px;
+            border-radius: 20px;
+            font-size: 14px;
+            color: #333;
+        }
+        
+        .quick-input-btn:active {
+            background-color: #e0e0e0;
+            transform: scale(0.98);
+        }
+        
+        /* 結果表示エリア */
+        .result-area {
+            background-color: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            display: none;
+        }
+        
+        .result-text {
+            font-size: 18px;
+            line-height: 1.6;
+            color: #333;
+            white-space: pre-wrap;
+        }
+        
+        .result-actions {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+        
+        .action-btn {
+            background-color: #4a6da7;
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 16px;
+            width: 48%;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 30px;
+        }
+        
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid rgba(74, 109, 167, 0.2);
+            border-radius: 50%;
+            border-top-color: #4a6da7;
+            animation: spin 1s ease-in-out infinite;
+            margin: 0 auto;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* ログイン画面 */
+        .login-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: white;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .login-card {
+            background-color: white;
+            border-radius: 15px;
+            padding: 30px;
+            width: 100%;
+            max-width: 400px;
+            margin: 0 auto;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+        }
+        
+        .login-title {
+            font-size: 24px;
+            color: #4a6da7;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .error-message {
+            color: #e74c3c;
+            text-align: center;
+            margin-top: 15px;
+            font-weight: bold;
+        }
+        
+        /* 音声入力ボタン */
+        .voice-input-btn {
+            position: absolute;
+            right: 15px;
+            top: 45px;
+            background: none;
+            border: none;
+            font-size: 24px;
+            color: #4a6da7;
+            width: auto;
+            padding: 5px;
+            margin: 0;
+        }
+        
+        /* 保存した日誌リスト */
+        .saved-journals {
+            margin-top: 20px;
+        }
+        
+        .journal-item {
+            background-color: white;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .journal-date {
+            font-weight: bold;
+            color: #4a6da7;
+        }
+        
+        .journal-preview {
+            margin-top: 10px;
+            color: #666;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        /* タブナビゲーション */
+        .tab-navigation {
+            display: flex;
+            background-color: white;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .tab-btn {
+            flex: 1;
+            text-align: center;
+            padding: 15px;
+            color: #777;
+            font-size: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .tab-btn.active {
+            color: #4a6da7;
+        }
+        
+        .tab-icon {
+            font-size: 22px;
+            margin-bottom: 5px;
+        }
+        
+        .content-area {
+            margin-bottom: 80px; /* タブナビゲーションの高さ分の余白 */
+        }
+        
+        /* iPadのフルスクリーンモードで下部の余白を確保 */
+        @supports (-webkit-touch-callout: none) {
+            .content-area {
+                margin-bottom: 100px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- ログイン画面 -->
+    <div class="login-container" id="login-screen">
+        <div class="login-card">
+            <h1 class="login-title">保育園日誌作成ツール</h1>
+            <div class="form-group">
+                <label for="password">パスワード</label>
+                <input type="password" id="password" placeholder="パスワードを入力してください">
+            </div>
+            <button id="login-btn">ログイン</button>
+            <div class="error-message" id="login-error"></div>
+        </div>
+    </div>
+
+    <!-- メインアプリ -->
+    <div id="app" style="display: none;">
+        <!-- ヘッダー -->
+        <div class="app-header">保育園日誌作成ツール</div>
+        
+        <!-- タブコンテンツエリア -->
+        <div class="content-area">
+            <!-- 日誌作成タブ -->
+            <div class="container" id="create-tab">
+                <div class="form-card">
+                    <div class="form-group">
+                        <label for="date">日付</label>
+                        <input type="date" id="date">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="weather">天候</label>
+                        <select id="weather">
+                            <option value="晴れ">晴れ</option>
+                            <option value="曇り">曇り</option>
+                            <option value="雨">雨</option>
+                            <option value="雪">雪</option>
+                            <option value="晴れ時々曇り">晴れ時々曇り</option>
+                            <option value="曇り時々晴れ">曇り時々晴れ</option>
+                            <option value="曇り時々雨">曇り時々雨</option>
+                            <option value="雨時々曇り">雨時々曇り</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="class-type">クラス</label>
+                        <select id="class-type">
+                            <option value="0歳児">0歳児クラス</option>
+                            <option value="1歳児">1歳児クラス</option>
+                            <option value="2歳児">2歳児クラス</option>
+                            <option value="3歳児">3歳児クラス</option>
+                            <option value="4歳児">4歳児クラス</option>
+                            <option value="5歳児">5歳児クラス</option>
+                            <option value="異年齢">異年齢混合クラス</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="activities">主な活動内容</label>
+                        <div class="relative-wrapper">
+                            <input type="text" id="activities" placeholder="主な活動を入力...">
+                            <button class="voice-input-btn" id="voice-activities">🎤</button>
+                        </div>
+                        
+                        <div class="quick-inputs">
+                            <button class="quick-input-btn" data-target="activities">自由遊び</button>
+                            <button class="quick-input-btn" data-target="activities">製作活動</button>
+                            <button class="quick-input-btn" data-target="activities">お散歩</button>
+                            <button class="quick-input-btn" data-target="activities">水遊び</button>
+                            <button class="quick-input-btn" data-target="activities">運動遊び</button>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="special-events">特別な出来事・行事</label>
+                        <input type="text" id="special-events" placeholder="特別な出来事があれば...">
+                        
+                        <div class="quick-inputs">
+                            <button class="quick-input-btn" data-target="special-events">誕生日会</button>
+                            <button class="quick-input-btn" data-target="special-events">避難訓練</button>
+                            <button class="quick-input-btn" data-target="special-events">身体測定</button>
+                            <button class="quick-input-btn" data-target="special-events">健康診断</button>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="children-mood">子どもたちの様子</label>
+                        <div class="relative-wrapper">
+                            <input type="text" id="children-mood" placeholder="子どもたちの様子...">
+                            <button class="voice-input-btn" id="voice-mood">🎤</button>
+                        </div>
+                        
+                        <div class="quick-inputs">
+                            <button class="quick-input-btn" data-target="children-mood">元気いっぱい</button>
+                            <button class="quick-input-btn" data-target="children-mood">集中して</button>
+                            <button class="quick-input-btn" data-target="children-mood">楽しそうに</button>
+                            <button class="quick-input-btn" data-target="children-mood">協力して</button>
+                            <button class="quick-input-btn" data-target="children-mood">興味津々</button>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="keywords">その他のキーワード</label>
+                        <input type="text" id="keywords" placeholder="関連キーワード（カンマ区切り）...">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="length">文章の長さ</label>
+                        <select id="length">
+                            <option value="100">短め (約100字)</option>
+                            <option value="150" selected>標準 (約150字)</option>
+                            <option value="200">長め (約200字)</option>
+                        </select>
+                    </div>
+                    
+                    <button id="generate-btn">日誌を生成する</button>
+                </div>
+                
+                <!-- ローディング表示 -->
+                <div class="loading" id="loading">
+                    <div class="spinner"></div>
+                    <p>日誌を生成中...</p>
+                </div>
+                
+                <!-- 結果表示エリア -->
+                <div class="result-area" id="result-area">
+                    <div class="result-text" id="result-text"></div>
+                    <div class="result-actions">
+                        <button class="action-btn" id="copy-btn">コピー</button>
+                        <button class="action-btn" id="save-btn">保存</button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 保存済み日誌タブ -->
+            <div class="container" id="saved-tab" style="display: none;">
+                <h2>保存した日誌</h2>
+                <div class="saved-journals" id="saved-journals-list">
+                    <!-- 保存した日誌がここに表示されます -->
+                </div>
+            </div>
+            
+            <!-- 設定タブ -->
+            <div class="container" id="settings-tab" style="display: none;">
+                <div class="form-card">
+                    <h2>設定</h2>
+                    <div class="form-group">
+                        <label for="api-key">OpenAI APIキー</label>
+                        <input type="password" id="api-key" placeholder="sk-...">
+                        <p class="hint">※APIキーはこの端末にのみ保存され、外部に送信されません</p>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="offline-mode">オフラインモード</label>
+                        <select id="offline-mode">
+                            <option value="auto">自動 (接続状況に応じて切替)</option>
+                            <option value="always">常にオフライン (テンプレートのみ)</option>
+                            <option value="never">常にオンライン (API使用)</option>
+                        </select>
+                    </div>
+                    
+                    <button id="save-settings">設定を保存</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- タブナビゲーション -->
+        <div class="tab-navigation">
+            <div class="tab-btn active" data-tab="create-tab">
+                <div class="tab-icon">✏️</div>
+                <div>作成</div>
+            </div>
+            <div class="tab-btn" data-tab="saved-tab">
+                <div class="tab-icon">📋</div>
+                <div>保存済み</div>
+            </div>
+            <div class="tab-btn" data-tab="settings-tab">
+                <div class="tab-icon">⚙️</div>
+                <div>設定</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 正しいパスワード（実際のアプリケーションではサーバーサイドで検証するか、より安全な方法で管理）
+            const correctPassword = 'hoikuen2025';
+            
+            // DOM参照
+            const loginScreen = document.getElementById('login-screen');
+            const app = document.getElementById('app');
+            const loginBtn = document.getElementById('login-btn');
+            const loginError = document.getElementById('login-error');
+            const generateBtn = document.getElementById('generate-btn');
+            const copyBtn = document.getElementById('copy-btn');
+            const saveBtn = document.getElementById('save-btn');
+            const saveSettingsBtn = document.getElementById('save-settings');
+            const tabButtons = document.querySelectorAll('.tab-btn');
+            const quickInputButtons = document.querySelectorAll('.quick-input-btn');
+            const voiceButtons = document.querySelectorAll('.voice-input-btn');
+            
+            // 日付に今日の日付をセット
+            document.getElementById('date').valueAsDate = new Date();
+            
+            // ローカルストレージから設定とAPI情報を取得
+            const apiKey = localStorage.getItem('openai_api_key') || '';
+            document.getElementById('api-key').value = apiKey;
+            
+            // ログインチェック
+            const isLoggedIn = localStorage.getItem('logged_in');
+            if (isLoggedIn === 'true') {
+                loginScreen.style.display = 'none';
+                app.style.display = 'block';
+            }
+            
+            // ローカルストレージから保存された日誌を取得して表示
+            loadSavedJournals();
+            
+            // ログインボタンのイベントリスナー
+            loginBtn.addEventListener('click', function() {
+                const password = document.getElementById('password').value;
+                
+                if (password === correctPassword) {
+                    localStorage.setItem('logged_in', 'true');
+                    loginScreen.style.display = 'none';
+                    app.style.display = 'block';
+                } else {
+                    loginError.textContent = 'パスワードが正しくありません';
+                }
+            });
+            
+            // タブ切り替えのイベントリスナー
+            tabButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    // アクティブタブのスタイルを切り替え
+                    tabButtons.forEach(btn => btn.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    // タブコンテンツを切り替え
+                    const tabId = this.getAttribute('data-tab');
+                    document.querySelectorAll('.container').forEach(container => {
+                        container.style.display = 'none';
+                    });
+                    document.getElementById(tabId).style.display = 'block';
+                });
+            });
+            
+            // クイック入力ボタンのイベントリスナー
+            quickInputButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const targetId = this.getAttribute('data-target');
+                    const targetInput = document.getElementById(targetId);
+                    const value = this.textContent;
+                    
+                    // 現在の値と新しい値を結合（カンマ区切り）
+                    if (targetInput.value) {
+                        targetInput.value = targetInput.value + '、' + value;
+                    } else {
+                        targetInput.value = value;
+                    }
+                });
+            });
+            
+            // 音声入力ボタンのイベントリスナー（SpeechRecognition APIが利用可能な場合）
+            if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
+                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                
+                voiceButtons.forEach(button => {
+                    button.addEventListener('click', function() {
+                        const targetId = this.id.replace('voice-', '');
+                        const targetInput = document.getElementById(targetId === 'mood' ? 'children-mood' : 'activities');
+                        
+                        const recognition = new SpeechRecognition();
+                        recognition.lang = 'ja-JP';
+                        recognition.interimResults = true;
+                        
+                        recognition.start();
+                        this.textContent = '🔴'; // 録音中の表示
+                        
+                        recognition.onresult = function(event) {
+                            const transcript = event.results[0][0].transcript;
+                            if (event.results[0].isFinal) {
+                                targetInput.value = transcript;
+                            }
+                        };
+                        
+                        recognition.onend = function() {
+                            button.textContent = '🎤'; // 録音終了時の表示
+                        };
+                    });
+                });
+            } else {
+                // SpeechRecognition APIが利用できない場合は音声入力ボタンを非表示
+                voiceButtons.forEach(button => {
+                    button.style.display = 'none';
+                });
+            }
+            
+            // 日誌生成ボタンのイベントリスナー
+            generateBtn.addEventListener('click', async function() {
+                // 入力値の取得
+                const date = document.getElementById('date').value;
+                const weather = document.getElementById('weather').value;
+                const classType = document.getElementById('class-type').value;
+                const activities = document.getElementById('activities').value;
+                const specialEvents = document.getElementById('special-events').value;
+                const childrenMood = document.getElementById('children-mood').value;
+                const keywords = document.getElementById('keywords').value;
+                const length = document.getElementById('length').value;
+                const apiKey = document.getElementById('api-key').value;
+                const offlineMode = document.getElementById('offline-mode').value;
+                localStorage.setItem('offline_mode', offlineMode);
+                
+                alert('設定を保存しました');
+            });
+            
+            // OpenAI APIを呼び出す関数
+            async function callOpenAI(apiKey, date, weather, classType, activities, specialEvents, childrenMood, keywords, length) {
+                // 日付のフォーマット
+                const formattedDate = new Date(date).toLocaleDateString('ja-JP', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                    weekday: 'long'
+                });
+                
+                // プロンプトの作成
+                const prompt = `
+以下の情報を元に、保育園の日誌（${length}字程度）を作成してください。個人名は含めず、クラス全体の活動として記述してください。
+
+日付: ${formattedDate}
+天候: ${weather}
+クラス: ${classType}
+主な活動: ${activities}
+${specialEvents ? `特別な出来事・行事: ${specialEvents}` : ''}
+子どもたちの様子: ${childrenMood}
+${keywords ? `その他キーワード: ${keywords}` : ''}
+
+以下の点に注意して作成してください：
+・保育の専門性が感じられる表現を使う
+・子どもの様子を具体的に描写する
+・発達や学びの視点を含める
+・約${length}字程度にまとめる
+`;
+                
+                // OpenAI API呼び出し
+                const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${apiKey}`
+                    },
+                    body: JSON.stringify({
+                        model: 'gpt-3.5-turbo',
+                        messages: [
+                            {
+                                role: 'system',
+                                content: '保育園の日誌を作成する専門家として、専門的かつ具体的な表現で保育活動を記述してください。'
+                            },
+                            {
+                                role: 'user',
+                                content: prompt
+                            }
+                        ],
+                        temperature: 0.7,
+                        max_tokens: 500
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`API呼び出しエラー: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                return data.choices[0].message.content.trim();
+            }
+            
+            // オフラインモードでテンプレートベースの日誌を生成
+            function generateOfflineJournal(date, weather, classType, activities, specialEvents, childrenMood, keywords) {
+                // 日付のフォーマット
+                const formattedDate = new Date(date).toLocaleDateString('ja-JP', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                    weekday: 'long'
+                });
+                
+                // テンプレート文の配列
+                const templates = [
+                    `${formattedDate}（${weather}）の${classType}クラスでは、${activities}を行いました。子どもたちは${childrenMood}取り組んでいました。${specialEvents ? `また、${specialEvents}もあり、特別な一日となりました。` : ''}${keywords ? `活動を通して、${keywords}などの成長が見られました。` : ''}`,
+                    
+                    `今日（${formattedDate}）は${weather}の中、${classType}クラスの子どもたちは${childrenMood}${activities}に取り組みました。${specialEvents ? `${specialEvents}では、普段とは違う表情も見られました。` : ''}子どもたち同士の関わりも増え、協調性や社会性が育まれています。${keywords ? `特に${keywords}の面で成長が感じられました。` : ''}`,
+                    
+                    `${weather}の${formattedDate}、${classType}クラスでは${activities}を中心に活動しました。子どもたちは${childrenMood}活動に参加し、意欲的な姿が見られました。${specialEvents ? `${specialEvents}も実施し、子どもたちの新たな一面を発見できました。` : ''}互いに刺激し合いながら、${keywords ? `${keywords}など、` : ''}様々な力を伸ばしています。`
+                ];
+                
+                // ランダムにテンプレートを選択
+                const randomIndex = Math.floor(Math.random() * templates.length);
+                return templates[randomIndex];
+            }
+            
+            // 日誌を保存する関数
+            function saveJournal(date, classType, text) {
+                // ローカルストレージから既存の保存済み日誌を取得
+                const savedJournals = JSON.parse(localStorage.getItem('saved_journals') || '[]');
+                
+                // 新しい日誌を追加
+                savedJournals.push({
+                    id: Date.now().toString(),
+                    date: date,
+                    classType: classType,
+                    text: text,
+                    createdAt: new Date().toISOString()
+                });
+                
+                // 保存（新しい順にソート）
+                savedJournals.sort((a, b) => new Date(b.date) - new Date(a.date));
+                localStorage.setItem('saved_journals', JSON.stringify(savedJournals));
+            }
+            
+            // 保存済み日誌を読み込む関数
+            function loadSavedJournals() {
+                const savedJournals = JSON.parse(localStorage.getItem('saved_journals') || '[]');
+                const container = document.getElementById('saved-journals-list');
+                
+                if (savedJournals.length === 0) {
+                    container.innerHTML = '<p>保存した日誌はありません</p>';
+                    return;
+                }
+                
+                container.innerHTML = '';
+                
+                savedJournals.forEach(journal => {
+                    const formattedDate = new Date(journal.date).toLocaleDateString('ja-JP', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                    });
+                    
+                    const journalItem = document.createElement('div');
+                    journalItem.className = 'journal-item';
+                    journalItem.innerHTML = `
+                        <div class="journal-date">${formattedDate} (${journal.classType})</div>
+                        <div class="journal-preview">${journal.text.substring(0, 50)}...</div>
+                    `;
+                    
+                    // クリックで詳細表示
+                    journalItem.addEventListener('click', function() {
+                        document.getElementById('result-text').textContent = journal.text;
+                        document.getElementById('result-area').style.display = 'block';
+                        
+                        // 作成タブに切り替え
+                        tabButtons.forEach(btn => {
+                            if (btn.getAttribute('data-tab') === 'create-tab') {
+                                btn.click();
+                            }
+                        });
+                        
+                        // ページスクロール
+                        document.getElementById('result-area').scrollIntoView({ behavior: 'smooth' });
+                    });
+                    
+                    container.appendChild(journalItem);
+                });
+            }
+            
+            // オフラインの状態を監視
+            window.addEventListener('online', function() {
+                const offlineMode = localStorage.getItem('offline_mode') || 'auto';
+                if (offlineMode === 'auto') {
+                    // オンラインになったことを通知
+                    if (document.getElementById('settings-tab').style.display !== 'block') {
+                        alert('インターネット接続が復旧しました。オンラインモードで使用できます。');
+                    }
+                }
+            });
+            
+            window.addEventListener('offline', function() {
+                // オフラインになったことを通知
+                alert('インターネット接続がありません。オフラインモードに切り替えます。');
+            });
+            
+            // アプリケーションをPWAとして登録するためのサービスワーカー登録
+            if ('serviceWorker' in navigator) {
+                window.addEventListener('load', function() {
+                    navigator.serviceWorker.register('service-worker.js')
+                        .then(function(registration) {
+                            console.log('ServiceWorker登録成功:', registration.scope);
+                        })
+                        .catch(function(error) {
+                            console.log('ServiceWorker登録失敗:', error);
+                        });
+                });
+            }
+        });
+    </script>
+</body>
+</html>
+getElementById('offline-mode')?.value || 'auto';
+                
+                // 必須項目のチェック
+                if (!date || !activities || !childrenMood) {
+                    alert('日付、活動内容、子どもたちの様子は必須項目です');
+                    return;
+                }
+                
+                // オフラインモードのチェック
+                const isOffline = offlineMode === 'always' || 
+                                 (offlineMode === 'auto' && !navigator.onLine) || 
+                                 !apiKey;
+                
+                // ローディング表示
+                document.getElementById('loading').style.display = 'block';
+                document.getElementById('result-area').style.display = 'none';
+                
+                try {
+                    let journalText = '';
+                    
+                    if (isOffline) {
+                        // オフラインモード: テンプレートベースの生成
+                        journalText = generateOfflineJournal(
+                            date, weather, classType, activities, 
+                            specialEvents, childrenMood, keywords
+                        );
+                        // 擬似的な遅延を追加（UX向上のため）
+                        await new Promise(resolve => setTimeout(resolve, 500));
+                    } else {
+                        // オンラインモード: API呼び出し
+                        journalText = await callOpenAI(
+                            apiKey, date, weather, classType, activities, 
+                            specialEvents, childrenMood, keywords, length
+                        );
+                    }
+                    
+                    // 結果の表示
+                    document.getElementById('result-text').textContent = journalText;
+                    document.getElementById('result-area').style.display = 'block';
+                    
+                } catch (error) {
+                    console.error('エラー:', error);
+                    alert(`エラーが発生しました: ${error.message || '原因不明のエラー'}`);
+                    
+                    // エラー時はテンプレートベースで生成
+                    const fallbackText = generateOfflineJournal(
+                        date, weather, classType, activities, 
+                        specialEvents, childrenMood, keywords
+                    );
+                    document.getElementById('result-text').textContent = fallbackText;
+                    document.getElementById('result-area').style.display = 'block';
+                } finally {
+                    document.getElementById('loading').style.display = 'none';
+                }
+            });
+            
+            // コピーボタンのイベントリスナー
+            copyBtn.addEventListener('click', function() {
+                const text = document.getElementById('result-text').textContent;
+                
+                // クリップボードにコピー
+                if (navigator.clipboard) {
+                    navigator.clipboard.writeText(text)
+                        .then(() => {
+                            alert('文章をクリップボードにコピーしました');
+                        })
+                        .catch(err => {
+                            alert('コピーに失敗しました: ' + err);
+                        });
+                } else {
+                    // Clipboardに対応していない場合（非対応のiPadOSなど）
+                    const textArea = document.createElement('textarea');
+                    textArea.value = text;
+                    textArea.style.position = 'fixed';
+                    document.body.appendChild(textArea);
+                    textArea.focus();
+                    textArea.select();
+                    
+                    try {
+                        document.execCommand('copy');
+                        alert('文章をクリップボードにコピーしました');
+                    } catch (err) {
+                        alert('コピーに失敗しました: ' + err);
+                    }
+                    
+                    document.body.removeChild(textArea);
+                }
+            });
+            
+            // 保存ボタンのイベントリスナー
+            saveBtn.addEventListener('click', function() {
+                const date = document.getElementById('date').value;
+                const classType = document.getElementById('class-type').value;
+                const text = document.getElementById('result-text').textContent;
+                
+                // 日誌を保存
+                saveJournal(date, classType, text);
+                alert('日誌を保存しました');
+                
+                // 保存済みリストを更新
+                loadSavedJournals();
+            });
+            
+            // 設定保存ボタンのイベントリスナー
+            saveSettingsBtn.addEventListener('click', function() {
+                const apiKey = document.getElementById('api-key').value;
+                localStorage.setItem('openai_api_key', apiKey);
+                
+                const offlineMode = document.
