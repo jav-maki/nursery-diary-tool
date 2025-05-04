@@ -60,7 +60,15 @@
         }
         
         input[type="text"], 
-        input[type="date"], 
+        input[type="date"] {
+            width: 100%;  /* 他の入力欄と同じ幅に設定 */
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            font-size: 18px;
+            -webkit-appearance: none;
+            box-sizing: border-box;  /* パディングを幅に含める */
+        } 
         input[type="password"],
         select {
             width: 100%;
