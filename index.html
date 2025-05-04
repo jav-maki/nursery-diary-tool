@@ -108,19 +108,23 @@
         
         /* クイック入力ボタン */
         .quick-inputs {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            margin: 15px 0;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr); /* 3列等分のグリッド */
+            gap: 8px; /* ボタン間の隙間 */
+            margin: 10px 0;
         }
         
         .quick-input-btn {
             background-color: #f0f0f0;
             border: 1px solid #ddd;
-            padding: 10px 15px;
+            padding: 8px 6px; /* パディングを小さくして横幅を節約 */
             border-radius: 20px;
             font-size: 14px;
             color: #333;
+            text-align: center; /* テキストを中央揃え */
+            white-space: nowrap; /* テキストを折り返さない */
+            overflow: hidden; /* はみ出したテキストを隠す */
+            text-overflow: ellipsis; /* はみ出した場合に省略記号を表示 */
         }
         
         .quick-input-btn:active {
@@ -372,6 +376,9 @@
                             <button class="quick-input-btn" data-target="activities">お散歩</button>
                             <button class="quick-input-btn" data-target="activities">水遊び</button>
                             <button class="quick-input-btn" data-target="activities">運動遊び</button>
+                            <button class="quick-input-btn" data-target="activities">音楽遊び</button>
+                            <button class="quick-input-btn" data-target="activities">ごっこ遊び</button>
+                            <button class="quick-input-btn" data-target="activities">絵本読み聞かせ</button>
                         </div>
                     </div>
                     
