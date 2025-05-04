@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black">
-    <title>保育園日誌生成ツール</title>
+    <title>保育園日誌作成ツール</title>
     <link rel="apple-touch-icon" href="icon-192.png">
     <link rel="manifest" href="manifest.json">
     <style>
@@ -396,8 +396,8 @@
                     </div>
                     
                     <div class="form-group">
-                        <label for="keywords">その他のキーワード</label>
-                        <input type="text" id="keywords" placeholder="関連キーワード（カンマ区切り）...">
+                        <label for="keywords">関連キーワード（カンマ区切り）</label>
+                        <input type="text" id="keywords" placeholder="関連キーワード...">
                     </div>
                     
                     <div class="form-group">
@@ -614,8 +614,8 @@
                 
                 // オフラインモードのチェック
                 const isOffline = offlineMode === 'always' || 
-                                (offlineMode === 'auto' && !navigator.onLine) || 
-                                !apiKey;
+                                 (offlineMode === 'auto' && !navigator.onLine) || 
+                                 !apiKey;
                 
                 // ローディング表示
                 document.getElementById('loading').style.display = 'block';
@@ -658,6 +658,64 @@
                 } finally {
                     document.getElementById('loading').style.display = 'none';
                 }
+            });
+            
+            // コピーボタンのイベントリスナー
+            copyBtn.addEventListener('click', function() {
+                const text = document.getElementById('result-text').textContent;
+                
+                // クリップボードにコピー
+                if (navigator.clipboard) {
+                    navigator.clipboard.writeText(text)
+                        .then(() => {
+                            alert('文章をクリップボードにコピーしました');
+                        })
+                        .catch(err => {
+                            alert('コピーに失敗しました: ' + err);
+                        });
+                } else {
+                    // Clipboardに対応していない場合（非対応のiPadOSなど）
+                    const textArea = document.createElement('textarea');
+                    textArea.value = text;
+                    textArea.style.position = 'fixed';
+                    document.body.appendChild(textArea);
+                    textArea.focus();
+                    textArea.select();
+                    
+                    try {
+                        document.execCommand('copy');
+                        alert('文章をクリップボードにコピーしました');
+                    } catch (err) {
+                        alert('コピーに失敗しました: ' + err);
+                    }
+                    
+                    document.body.removeChild(textArea);
+                }
+            });
+            
+            // 保存ボタンのイベントリスナー
+            saveBtn.addEventListener('click', function() {
+                const date = document.getElementById('date').value;
+                const classType = document.getElementById('class-type').value;
+                const text = document.getElementById('result-text').textContent;
+                
+                // 日誌を保存
+                saveJournal(date, classType, text);
+                alert('日誌を保存しました');
+                
+                // 保存済みリストを更新
+                loadSavedJournals();
+            });
+            
+            // 設定保存ボタンのイベントリスナー
+            saveSettingsBtn.addEventListener('click', function() {
+                const apiKey = document.getElementById('api-key').value;
+                localStorage.setItem('openai_api_key', apiKey);
+                
+                const offlineMode = document.getElementById('offline-mode').value;
+                localStorage.setItem('offline_mode', offlineMode);
+                
+                alert('設定を保存しました');
             });
             
             // OpenAI APIを呼び出す関数
@@ -842,112 +900,3 @@ ${keywords ? `その他キーワード: ${keywords}` : ''}
     </script>
 </body>
 </html>
-getElementById('offline-mode')?.value || 'auto';
-                
-                // 必須項目のチェック
-                if (!date || !activities || !childrenMood) {
-                    alert('日付、活動内容、子どもたちの様子は必須項目です');
-                    return;
-                }
-                
-                // オフラインモードのチェック
-                const isOffline = offlineMode === 'always' || 
-                                 (offlineMode === 'auto' && !navigator.onLine) || 
-                                 !apiKey;
-                
-                // ローディング表示
-                document.getElementById('loading').style.display = 'block';
-                document.getElementById('result-area').style.display = 'none';
-                
-                try {
-                    let journalText = '';
-                    
-                    if (isOffline) {
-                        // オフラインモード: テンプレートベースの生成
-                        journalText = generateOfflineJournal(
-                            date, weather, classType, activities, 
-                            specialEvents, childrenMood, keywords
-                        );
-                        // 擬似的な遅延を追加（UX向上のため）
-                        await new Promise(resolve => setTimeout(resolve, 500));
-                    } else {
-                        // オンラインモード: API呼び出し
-                        journalText = await callOpenAI(
-                            apiKey, date, weather, classType, activities, 
-                            specialEvents, childrenMood, keywords, length
-                        );
-                    }
-                    
-                    // 結果の表示
-                    document.getElementById('result-text').textContent = journalText;
-                    document.getElementById('result-area').style.display = 'block';
-                    
-                } catch (error) {
-                    console.error('エラー:', error);
-                    alert(`エラーが発生しました: ${error.message || '原因不明のエラー'}`);
-                    
-                    // エラー時はテンプレートベースで生成
-                    const fallbackText = generateOfflineJournal(
-                        date, weather, classType, activities, 
-                        specialEvents, childrenMood, keywords
-                    );
-                    document.getElementById('result-text').textContent = fallbackText;
-                    document.getElementById('result-area').style.display = 'block';
-                } finally {
-                    document.getElementById('loading').style.display = 'none';
-                }
-            });
-            
-            // コピーボタンのイベントリスナー
-            copyBtn.addEventListener('click', function() {
-                const text = document.getElementById('result-text').textContent;
-                
-                // クリップボードにコピー
-                if (navigator.clipboard) {
-                    navigator.clipboard.writeText(text)
-                        .then(() => {
-                            alert('文章をクリップボードにコピーしました');
-                        })
-                        .catch(err => {
-                            alert('コピーに失敗しました: ' + err);
-                        });
-                } else {
-                    // Clipboardに対応していない場合（非対応のiPadOSなど）
-                    const textArea = document.createElement('textarea');
-                    textArea.value = text;
-                    textArea.style.position = 'fixed';
-                    document.body.appendChild(textArea);
-                    textArea.focus();
-                    textArea.select();
-                    
-                    try {
-                        document.execCommand('copy');
-                        alert('文章をクリップボードにコピーしました');
-                    } catch (err) {
-                        alert('コピーに失敗しました: ' + err);
-                    }
-                    
-                    document.body.removeChild(textArea);
-                }
-            });
-            
-            // 保存ボタンのイベントリスナー
-            saveBtn.addEventListener('click', function() {
-                const date = document.getElementById('date').value;
-                const classType = document.getElementById('class-type').value;
-                const text = document.getElementById('result-text').textContent;
-                
-                // 日誌を保存
-                saveJournal(date, classType, text);
-                alert('日誌を保存しました');
-                
-                // 保存済みリストを更新
-                loadSavedJournals();
-            });
-            
-            // 設定保存ボタンのイベントリスナー
-            saveSettingsBtn.addEventListener('click', function() {
-                const apiKey = document.getElementById('api-key').value;
-                localStorage.setItem('openai_api_key', apiKey);
-                
-                const offlineMode = document.
