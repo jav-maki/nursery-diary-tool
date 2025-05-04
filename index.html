@@ -604,10 +604,60 @@
                 const keywords = document.getElementById('keywords').value;
                 const length = document.getElementById('length').value;
                 const apiKey = document.getElementById('api-key').value;
-                const offlineMode = document.getElementById('offline-mode').value;
-                localStorage.setItem('offline_mode', offlineMode);
+                const offlineMode = document.getElementById('offline-mode')?.value || 'auto';
                 
-                alert('設定を保存しました');
+                // 必須項目のチェック
+                if (!date || !activities || !childrenMood) {
+                    alert('日付、活動内容、子どもたちの様子は必須項目です');
+                    return;
+                }
+                
+                // オフラインモードのチェック
+                const isOffline = offlineMode === 'always' || 
+                                (offlineMode === 'auto' && !navigator.onLine) || 
+                                !apiKey;
+                
+                // ローディング表示
+                document.getElementById('loading').style.display = 'block';
+                document.getElementById('result-area').style.display = 'none';
+                
+                try {
+                    let journalText = '';
+                    
+                    if (isOffline) {
+                        // オフラインモード: テンプレートベースの生成
+                        journalText = generateOfflineJournal(
+                            date, weather, classType, activities, 
+                            specialEvents, childrenMood, keywords
+                        );
+                        // 擬似的な遅延を追加（UX向上のため）
+                        await new Promise(resolve => setTimeout(resolve, 500));
+                    } else {
+                        // オンラインモード: API呼び出し
+                        journalText = await callOpenAI(
+                            apiKey, date, weather, classType, activities, 
+                            specialEvents, childrenMood, keywords, length
+                        );
+                    }
+                    
+                    // 結果の表示
+                    document.getElementById('result-text').textContent = journalText;
+                    document.getElementById('result-area').style.display = 'block';
+                    
+                } catch (error) {
+                    console.error('エラー:', error);
+                    alert(`エラーが発生しました: ${error.message || '原因不明のエラー'}`);
+                    
+                    // エラー時はテンプレートベースで生成
+                    const fallbackText = generateOfflineJournal(
+                        date, weather, classType, activities, 
+                        specialEvents, childrenMood, keywords
+                    );
+                    document.getElementById('result-text').textContent = fallbackText;
+                    document.getElementById('result-area').style.display = 'block';
+                } finally {
+                    document.getElementById('loading').style.display = 'none';
+                }
             });
             
             // OpenAI APIを呼び出す関数
