@@ -42,7 +42,7 @@
         .form-card {
             background-color: white;
             border-radius: 10px;
-            padding: 20px;
+            padding: 15px; /* 20pxから15pxに変更して左右の余白を小さく */
             margin-bottom: 20px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
@@ -60,15 +60,6 @@
         }
         
         input[type="text"], 
-        input[type="date"] {
-            width: 100%;  /* 他の入力欄と同じ幅に設定 */
-            padding: 15px;
-            border: 1px solid #ddd;
-            border-radius: 10px;
-            font-size: 18px;
-            -webkit-appearance: none;
-            box-sizing: border-box;  /* パディングを幅に含める */
-        } 
         input[type="password"],
         select {
             width: 100%;
@@ -77,6 +68,18 @@
             border-radius: 10px;
             font-size: 18px;
             -webkit-appearance: none;
+            box-sizing: border-box;
+        }
+        
+        /* 日付入力欄のスタイル */
+        input[type="date"] {
+            width: 100%;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            font-size: 18px;
+            -webkit-appearance: none;
+            box-sizing: border-box;
         }
         
         /* iPadのセレクトボックスをカスタマイズ */
@@ -106,7 +109,7 @@
             transform: scale(0.98);
         }
         
-        /* クイック入力ボタン */
+        /* クイック入力ボタン - 3列グリッドに変更 */
         .quick-inputs {
             display: grid;
             grid-template-columns: repeat(3, 1fr); /* 3列等分のグリッド */
@@ -165,10 +168,15 @@
             width: 48%;
         }
         
+        /* ローディング表示を改善 */
         .loading {
             display: none;
             text-align: center;
             padding: 30px;
+            margin: 20px 0;
+            background-color: #f5f5f5;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
         
         .spinner {
@@ -178,7 +186,13 @@
             border-radius: 50%;
             border-top-color: #4a6da7;
             animation: spin 1s ease-in-out infinite;
-            margin: 0 auto;
+            margin: 0 auto 15px auto;
+        }
+        
+        .loading-text {
+            font-weight: bold;
+            color: #4a6da7;
+            font-size: 16px;
         }
         
         @keyframes spin {
@@ -391,6 +405,9 @@
                             <button class="quick-input-btn" data-target="special-events">避難訓練</button>
                             <button class="quick-input-btn" data-target="special-events">身体測定</button>
                             <button class="quick-input-btn" data-target="special-events">健康診断</button>
+                            <button class="quick-input-btn" data-target="special-events">季節の行事</button>
+                            <button class="quick-input-btn" data-target="special-events">保護者参観</button>
+                            <button class="quick-input-btn" data-target="special-events">クッキング活動</button>
                         </div>
                     </div>
                     
@@ -407,6 +424,9 @@
                             <button class="quick-input-btn" data-target="children-mood">楽しそうに</button>
                             <button class="quick-input-btn" data-target="children-mood">協力して</button>
                             <button class="quick-input-btn" data-target="children-mood">興味津々</button>
+                            <button class="quick-input-btn" data-target="children-mood">笑顔で</button>
+                            <button class="quick-input-btn" data-target="children-mood">真剣な表情で</button>
+                            <button class="quick-input-btn" data-target="children-mood">好奇心旺盛に</button>
                         </div>
                     </div>
                     
@@ -430,7 +450,7 @@
                 <!-- ローディング表示 -->
                 <div class="loading" id="loading">
                     <div class="spinner"></div>
-                    <p>日誌を生成中...</p>
+                    <p class="loading-text">日誌を生成中です...</p>
                 </div>
                 
                 <!-- 結果表示エリア -->
@@ -516,6 +536,9 @@
             // ローカルストレージから設定とAPI情報を取得
             const apiKey = localStorage.getItem('openai_api_key') || '';
             document.getElementById('api-key').value = apiKey;
+            
+            const offlineMode = localStorage.getItem('offline_mode') || 'auto';
+            document.getElementById('offline-mode').value = offlineMode;
             
             // ログインチェック
             const isLoggedIn = localStorage.getItem('logged_in');
@@ -632,9 +655,12 @@
                                  (offlineMode === 'auto' && !navigator.onLine) || 
                                  !apiKey;
                 
-                // ローディング表示
+                // ローディング表示を先に表示し、結果エリアを隠す
                 document.getElementById('loading').style.display = 'block';
                 document.getElementById('result-area').style.display = 'none';
+                
+                // スクロールして進行状況を見えるようにする
+                document.getElementById('loading').scrollIntoView({ behavior: 'smooth' });
                 
                 try {
                     let journalText = '';
@@ -655,273 +681,31 @@
                         );
                     }
                     
-                    // 結果の表示
                     // 結果エリアを先に表示（テキストはまだ表示しない）
                     document.getElementById('result-text').textContent = '';
                     document.getElementById('result-area').style.display = 'block';
-
+                    
                     // 結果エリアにスクロール
                     document.getElementById('result-area').scrollIntoView({ behavior: 'smooth' });
-
+                    
                     // スクロールが完了してから日誌テキストを表示（少し遅延を入れる）
                     setTimeout(() => {
                         document.getElementById('result-text').textContent = journalText;
                     }, 500); // 500ミリ秒の遅延
                     
-                    
                 } catch (error) {
                     console.error('エラー:', error);
                     alert(`エラーが発生しました: ${error.message || '原因不明のエラー'}`);
                     
-                    // エラー時はテンプレートベースで生成
+                    // エラー時のフォールバックテキスト生成
                     const fallbackText = generateOfflineJournal(
                         date, weather, classType, activities, 
                         specialEvents, childrenMood, keywords
                     );
-                    document.getElementById('result-text').textContent = fallbackText;
+                    
+                    // 結果エリアを先に表示
+                    document.getElementById('result-text').textContent = '';
                     document.getElementById('result-area').style.display = 'block';
-                } finally {
-                    document.getElementById('loading').style.display = 'none';
-                }
-            });
-            
-            // コピーボタンのイベントリスナー
-            copyBtn.addEventListener('click', function() {
-                const text = document.getElementById('result-text').textContent;
-                
-                // クリップボードにコピー
-                if (navigator.clipboard) {
-                    navigator.clipboard.writeText(text)
-                        .then(() => {
-                            alert('文章をクリップボードにコピーしました');
-                        })
-                        .catch(err => {
-                            alert('コピーに失敗しました: ' + err);
-                        });
-                } else {
-                    // Clipboardに対応していない場合（非対応のiPadOSなど）
-                    const textArea = document.createElement('textarea');
-                    textArea.value = text;
-                    textArea.style.position = 'fixed';
-                    document.body.appendChild(textArea);
-                    textArea.focus();
-                    textArea.select();
                     
-                    try {
-                        document.execCommand('copy');
-                        alert('文章をクリップボードにコピーしました');
-                    } catch (err) {
-                        alert('コピーに失敗しました: ' + err);
-                    }
-                    
-                    document.body.removeChild(textArea);
-                }
-            });
-            
-            // 保存ボタンのイベントリスナー
-            saveBtn.addEventListener('click', function() {
-                const date = document.getElementById('date').value;
-                const classType = document.getElementById('class-type').value;
-                const text = document.getElementById('result-text').textContent;
-                
-                // 日誌を保存
-                saveJournal(date, classType, text);
-                alert('日誌を保存しました');
-                
-                // 保存済みリストを更新
-                loadSavedJournals();
-            });
-            
-            // 設定保存ボタンのイベントリスナー
-            saveSettingsBtn.addEventListener('click', function() {
-                const apiKey = document.getElementById('api-key').value;
-                localStorage.setItem('openai_api_key', apiKey);
-                
-                const offlineMode = document.getElementById('offline-mode').value;
-                localStorage.setItem('offline_mode', offlineMode);
-                
-                alert('設定を保存しました');
-            });
-            
-            // OpenAI APIを呼び出す関数
-            async function callOpenAI(apiKey, date, weather, classType, activities, specialEvents, childrenMood, keywords, length) {
-                // 日付のフォーマット
-                const formattedDate = new Date(date).toLocaleDateString('ja-JP', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                    weekday: 'long'
-                });
-                
-                // プロンプトの作成
-                const prompt = `
-以下の情報を元に、保育園の日誌（${length}字程度）を作成してください。個人名は含めず、クラス全体の活動として記述してください。
-
-日付: ${formattedDate}
-天候: ${weather}
-クラス: ${classType}
-主な活動: ${activities}
-${specialEvents ? `特別な出来事・行事: ${specialEvents}` : ''}
-子どもたちの様子: ${childrenMood}
-${keywords ? `その他キーワード: ${keywords}` : ''}
-
-以下の点に注意して作成してください：
-・保育の専門性が感じられる表現を使う
-・子どもの様子を具体的に描写する
-・発達や学びの視点を含める
-・約${length}字程度にまとめる
-`;
-                
-                // OpenAI API呼び出し
-                const response = await fetch('https://api.openai.com/v1/chat/completions', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${apiKey}`
-                    },
-                    body: JSON.stringify({
-                        model: 'gpt-3.5-turbo',
-                        messages: [
-                            {
-                                role: 'system',
-                                content: '保育園の日誌を作成する専門家として、専門的かつ具体的な表現で保育活動を記述してください。'
-                            },
-                            {
-                                role: 'user',
-                                content: prompt
-                            }
-                        ],
-                        temperature: 0.7,
-                        max_tokens: 500
-                    })
-                });
-                
-                if (!response.ok) {
-                    throw new Error(`API呼び出しエラー: ${response.status}`);
-                }
-                
-                const data = await response.json();
-                return data.choices[0].message.content.trim();
-            }
-            
-            // オフラインモードでテンプレートベースの日誌を生成
-            function generateOfflineJournal(date, weather, classType, activities, specialEvents, childrenMood, keywords) {
-                // 日付のフォーマット
-                const formattedDate = new Date(date).toLocaleDateString('ja-JP', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                    weekday: 'long'
-                });
-                
-                // テンプレート文の配列
-                const templates = [
-                    `${formattedDate}（${weather}）の${classType}クラスでは、${activities}を行いました。子どもたちは${childrenMood}取り組んでいました。${specialEvents ? `また、${specialEvents}もあり、特別な一日となりました。` : ''}${keywords ? `活動を通して、${keywords}などの成長が見られました。` : ''}`,
-                    
-                    `今日（${formattedDate}）は${weather}の中、${classType}クラスの子どもたちは${childrenMood}${activities}に取り組みました。${specialEvents ? `${specialEvents}では、普段とは違う表情も見られました。` : ''}子どもたち同士の関わりも増え、協調性や社会性が育まれています。${keywords ? `特に${keywords}の面で成長が感じられました。` : ''}`,
-                    
-                    `${weather}の${formattedDate}、${classType}クラスでは${activities}を中心に活動しました。子どもたちは${childrenMood}活動に参加し、意欲的な姿が見られました。${specialEvents ? `${specialEvents}も実施し、子どもたちの新たな一面を発見できました。` : ''}互いに刺激し合いながら、${keywords ? `${keywords}など、` : ''}様々な力を伸ばしています。`
-                ];
-                
-                // ランダムにテンプレートを選択
-                const randomIndex = Math.floor(Math.random() * templates.length);
-                return templates[randomIndex];
-            }
-            
-            // 日誌を保存する関数
-            function saveJournal(date, classType, text) {
-                // ローカルストレージから既存の保存済み日誌を取得
-                const savedJournals = JSON.parse(localStorage.getItem('saved_journals') || '[]');
-                
-                // 新しい日誌を追加
-                savedJournals.push({
-                    id: Date.now().toString(),
-                    date: date,
-                    classType: classType,
-                    text: text,
-                    createdAt: new Date().toISOString()
-                });
-                
-                // 保存（新しい順にソート）
-                savedJournals.sort((a, b) => new Date(b.date) - new Date(a.date));
-                localStorage.setItem('saved_journals', JSON.stringify(savedJournals));
-            }
-            
-            // 保存済み日誌を読み込む関数
-            function loadSavedJournals() {
-                const savedJournals = JSON.parse(localStorage.getItem('saved_journals') || '[]');
-                const container = document.getElementById('saved-journals-list');
-                
-                if (savedJournals.length === 0) {
-                    container.innerHTML = '<p>保存した日誌はありません</p>';
-                    return;
-                }
-                
-                container.innerHTML = '';
-                
-                savedJournals.forEach(journal => {
-                    const formattedDate = new Date(journal.date).toLocaleDateString('ja-JP', {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric'
-                    });
-                    
-                    const journalItem = document.createElement('div');
-                    journalItem.className = 'journal-item';
-                    journalItem.innerHTML = `
-                        <div class="journal-date">${formattedDate} (${journal.classType})</div>
-                        <div class="journal-preview">${journal.text.substring(0, 50)}...</div>
-                    `;
-                    
-                    // クリックで詳細表示
-                    journalItem.addEventListener('click', function() {
-                        document.getElementById('result-text').textContent = journal.text;
-                        document.getElementById('result-area').style.display = 'block';
-                        
-                        // 作成タブに切り替え
-                        tabButtons.forEach(btn => {
-                            if (btn.getAttribute('data-tab') === 'create-tab') {
-                                btn.click();
-                            }
-                        });
-                        
-                        // ページスクロール
-                        document.getElementById('result-area').scrollIntoView({ behavior: 'smooth' });
-                    });
-                    
-                    container.appendChild(journalItem);
-                });
-            }
-            
-            // オフラインの状態を監視
-            window.addEventListener('online', function() {
-                const offlineMode = localStorage.getItem('offline_mode') || 'auto';
-                if (offlineMode === 'auto') {
-                    // オンラインになったことを通知
-                    if (document.getElementById('settings-tab').style.display !== 'block') {
-                        alert('インターネット接続が復旧しました。オンラインモードで使用できます。');
-                    }
-                }
-            });
-            
-            window.addEventListener('offline', function() {
-                // オフラインになったことを通知
-                alert('インターネット接続がありません。オフラインモードに切り替えます。');
-            });
-            
-            // アプリケーションをPWAとして登録するためのサービスワーカー登録
-            if ('serviceWorker' in navigator) {
-                window.addEventListener('load', function() {
-                    navigator.serviceWorker.register('service-worker.js')
-                        .then(function(registration) {
-                            console.log('ServiceWorker登録成功:', registration.scope);
-                        })
-                        .catch(function(error) {
-                            console.log('ServiceWorker登録失敗:', error);
-                        });
-                });
-            }
-        });
-    </script>
-</body>
-</html>
+                    // 結果エリアにスクロール
+                    document.getElementById('result-area').scrollIntoView({ behavior: 'smooth' });
