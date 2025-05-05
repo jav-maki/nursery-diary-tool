@@ -659,6 +659,8 @@
                     document.getElementById('result-text').textContent = journalText;
                     document.getElementById('result-area').style.display = 'block';
                     
+                    // 結果エリアに自動スクロール
+                    document.getElementById('result-area').scrollIntoView({ behavior: 'smooth' });
                 } catch (error) {
                     console.error('エラー:', error);
                     alert(`エラーが発生しました: ${error.message || '原因不明のエラー'}`);
