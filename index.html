@@ -656,11 +656,19 @@
                     }
                     
                     // 結果の表示
-                    document.getElementById('result-text').textContent = journalText;
+                    // 結果エリアを先に表示（テキストはまだ表示しない）
+                    document.getElementById('result-text').textContent = '';
                     document.getElementById('result-area').style.display = 'block';
-                    
-                    // 結果エリアに自動スクロール
+
+                    // 結果エリアにスクロール
                     document.getElementById('result-area').scrollIntoView({ behavior: 'smooth' });
+
+                    // スクロールが完了してから日誌テキストを表示（少し遅延を入れる）
+                    setTimeout(() => {
+                        document.getElementById('result-text').textContent = journalText;
+                    }, 500); // 500ミリ秒の遅延
+                    
+                    
                 } catch (error) {
                     console.error('エラー:', error);
                     alert(`エラーが発生しました: ${error.message || '原因不明のエラー'}`);
